@@ -1,10 +1,12 @@
 package com.mvpt.model;
 
 
+import com.mvpt.model.dto.CustomerDTO;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 
 import javax.persistence.*;
 import javax.validation.constraints.Digits;
@@ -17,6 +19,7 @@ import java.util.Set;
 @Setter
 @Entity
 @Table(name = "customers")
+@Accessors(chain = true)
 public class Customer extends BaseEntities {
 
     @Id
@@ -50,5 +53,15 @@ public class Customer extends BaseEntities {
 
     @OneToMany(mappedBy = "recipient")
     private Set<Transfer> recipient;
+
+    public CustomerDTO toCustomerDTO() {
+        return new CustomerDTO()
+                .setId(id)
+                .setFullName(fullName)
+                .setEmail(email)
+                .setPhone(phone)
+                .setBalance(balance)
+                .setLocationRegion(locationRegion.toLocationRegionDTO());
+    }
 
 }

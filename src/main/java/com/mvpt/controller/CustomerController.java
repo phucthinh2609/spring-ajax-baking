@@ -4,6 +4,7 @@ package com.mvpt.controller;
 import com.mvpt.model.Customer;
 import com.mvpt.model.Deposit;
 import com.mvpt.model.Transfer;
+import com.mvpt.model.dto.DepositDTO;
 import com.mvpt.model.dto.TransferDTO;
 import com.mvpt.service.customer.CustomerService;
 import com.mvpt.service.deposit.DepositService;
@@ -14,9 +15,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 
-import javax.validation.Valid;
 import java.math.BigDecimal;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -154,7 +153,7 @@ public class CustomerController {
     }
 
     @PostMapping("/deposit/{id}")
-    public ModelAndView doDeposit(@PathVariable Long id, @ModelAttribute Deposit deposit) {
+    public ModelAndView doDeposit(@PathVariable Long id, @ModelAttribute DepositDTO depositDTO) {
         ModelAndView modelAndView = new ModelAndView();
         modelAndView.setViewName("/customer/deposit");
 
@@ -162,7 +161,7 @@ public class CustomerController {
 
         if (optionalCustomer.isPresent()) {
             try {
-                customerService.deposit(optionalCustomer.get(), deposit);
+                customerService.doDeposit(depositDTO);
 
                 modelAndView.addObject("customer", optionalCustomer.get());
                 modelAndView.addObject("success", "Deposit success");

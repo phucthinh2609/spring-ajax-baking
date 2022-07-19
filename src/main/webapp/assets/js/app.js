@@ -1,3 +1,25 @@
+class App {
+    static SweetAleart = class {
+        static showSuccessAlert(t) {
+            Swal.fire({
+                icon: 'success',
+                title: t,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 1500
+            })
+        }
+
+        static showErrorAlert(t) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Warning',
+                text: t,
+            })
+        }
+    }
+}
+
 class LocationRegion {
     constructor(id, provinceId, provinceName, districtId, districtName, wardId, wardName, address) {
         this.id = id;
@@ -23,14 +45,9 @@ class Customer {
 }
 
 class Deposit {
-    constructor(id, customerId, transactionAmount, createdAt, createdBy, updatedAT, updatedBy, isDeleted) {
+    constructor(id, customerId, transactionAmount) {
         this.id = id;
         this.customerId = customerId;
         this.transactionAmount = transactionAmount;
-        this.createdAt = createdAt;
-        this.createdBy = createdBy;
-        this.updatedAt = updatedAT;
-        this.updatedBy = updatedBy;
-        this.isDeleted = isDeleted;
     }
 }

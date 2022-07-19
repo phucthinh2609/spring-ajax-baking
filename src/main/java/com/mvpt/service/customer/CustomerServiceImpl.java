@@ -1,9 +1,10 @@
 package com.mvpt.service.customer;
 
 import com.mvpt.model.Customer;
-import com.mvpt.model.Deposit;
 import com.mvpt.model.LocationRegion;
 import com.mvpt.model.Transfer;
+import com.mvpt.model.dto.CustomerDTO;
+import com.mvpt.model.dto.DepositDTO;
 import com.mvpt.repository.CustomerRepository;
 import com.mvpt.repository.DepositRepository;
 import com.mvpt.repository.LocationRegionRepository;
@@ -12,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -38,8 +40,23 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
+    public List<Customer> findAllByDeletedFalse() {
+        return customerRepository.findAllByDeletedFalse();
+    }
+
+    @Override
+    public List<CustomerDTO> findAllCustomerDTOByDeletedIsFalse() {
+        return customerRepository.findAllCustomerDTOByDeletedIsFalse();
+    }
+
+    @Override
     public Optional<Customer> findById(Long id) {
         return customerRepository.findById(id);
+    }
+
+    @Override
+    public Optional<CustomerDTO> getCustomerDTOById(Long id) {
+        return customerRepository.getCustomerDTOById(id);
     }
 
     @Override
@@ -65,11 +82,17 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
-    public void deposit(Customer customer, Deposit deposit) {
+    public Optional<CustomerDTO> doDeposit(DepositDTO depositDTO) {
+        long customerId = Long.parseLong(depositDTO.getCustomerId());
+        BigDecimal transactionAmount = new BigDecimal(Long.parseLong(depositDTO.getTransactionAmount()));
 
-        customerRepository.incrementBalance(customer.getId(), deposit.getTransactionAmount());
+        customerRepository.incrementBalance(customerId, transactionAmount);
 
-        depositRepository.save(deposit);
+        Optional<CustomerDTO> customerDTO = customerRepository.getCustomerDTOById(customerId);
+
+        depositRepository.save(depositDTO.toDeposit(customerDTO.get().toCustomer()));
+
+        return customerDTO;
     }
 
     @Override

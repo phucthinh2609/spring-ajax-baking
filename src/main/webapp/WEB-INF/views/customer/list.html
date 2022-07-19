@@ -26,52 +26,79 @@
 
             <table id="tbListCustomers" class="table table-hover">
                 <thead>
-                <tr>
-                    <th></th>
-                    <th>#</th>
-                    <th>FullName</th>
-                    <th>Email</th>
-                    <th>Phone</th>
-                    <th>Balance</th>
-                    <th>Province</th>
-                    <th>District</th>
-                    <th>Ward</th>
-                    <th>Address</th>
-                </tr>
+                    <tr>
+                        <th></th>
+                        <th>#</th>
+                        <th>FullName</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Balance</th>
+                        <th>Province</th>
+                        <th>District</th>
+                        <th>Ward</th>
+                        <th>Address</th>
+                    </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td><span class="select-tab unselected"></span></td>
-                        <td>1</td>
-                        <td>NVA</td>
-                        <td>nva@gmail.com</td>
-                        <td>01234</td>
-                        <td>0</td>
-                        <td>Hue</td>
-                        <td>Tp.Hue</td>
-                        <td>Phu Nhuan</td>
-                        <td>28 NTP</td>
-                    </tr>
                 </tbody>
             </table>
 
         </div>
     </div>
 
-    <th:block th:replace="/customer/modal-create :: modal-create" />
-<!--    <th:block th:replace="/customer/modal-deposit :: modal-deposit" />-->
+    <div class="footer"></div>
+
+    <th:block th:replace="/customer/modal_create :: modal_create" />
+    <th:block th:replace="/customer/modal_deposit :: modal_deposit" />
 <!--    <th:block th:replace="/customer/modal-transfer :: modal-transfer" />-->
 <!--    <th:block th:replace="/customer/modal-update :: modal-update" />-->
 <!--    <th:block th:replace="/customer/modal-withdraw :: modal-withdraw" />-->
+    <th:block th:replace="/customer/footer :: footer" />
     <th:block th:replace="/layout/script :: script" />
 
     <script>
         let locationRegion = new LocationRegion();
         let customer = new Customer();
+        let deposit = new Deposit();
+        let customerId = null;
 
         $('.create-modal').on('click', () => {
             $('#modalCreateCustomer').modal('show');
         })
+
+        function loadCustomers() {
+            $.ajax({
+                "headers": {
+                    "accept": "application/json",
+                    "content-type": "application/json"
+                },
+                "type": "GET",
+                "url": "http://localhost:8080/api/customers",
+            })
+            .done((data) => {
+                $.each(data, (i, item) => {
+                    let str = `
+                        <tr id="tr_${item.id}">
+                            <td><span class="select-tab unselected"></span></td>
+                            <td>${item.id}</td>
+                            <td>${item.fullName}</td>
+                            <td>${item.email}</td>
+                            <td>${item.phone}</td>
+                            <td>${item.balance}</td>
+                            <td>${item.locationRegion.provinceName}</td>
+                            <td>${item.locationRegion.districtName}</td>
+                            <td>${item.locationRegion.wardName}</td>
+                            <td>${item.locationRegion.address}</td>
+                        </tr>
+                    `;
+
+                    $('#tbListCustomers tbody').prepend(str)
+
+                    handleShowFooter();
+                    unbinAll();
+                })
+            })
+        }
 
         function drawProvinces() {
             return $.ajax({
@@ -89,9 +116,9 @@
                         $('#province').append(str);
                     })
                 })
-                .fail((jqXHR) => {
-                    console.log(jqXHR);
-                })
+                .fail((jqxHR) => {
+                    App.SweetAleart.showErrorAlert(jqxHR.responseJSON.message)
+                    console.log(jqxHR);                })
         }
 
         function drawDistricts (provinceId) {
@@ -146,6 +173,14 @@
             })
         })
 
+        function unbinAll() {
+            $('.edit').off;
+            $('.suspended').off;
+            $('.deposit').off;
+            $('.withdraw').off;
+            $('.transfer').off;
+        }
+
         $('#btnCreateCustomer').on('click', () => {
             locationRegion.provinceId = $('#province').val();
             locationRegion.provinceName = $('#province :selected').text();
@@ -169,15 +204,120 @@
                 "url": "http://localhost:8080/api/customers/create",
                 "data": JSON.stringify(customer)
             })
-            .done((data) => {
-                console.log(data);
+            .done((item) => {
+                let str = `
+                    <tr id="tr_${item.id}">
+                        <td><span class="select-tab unselected"></span></td>
+                        <td>${item.id}</td>
+                        <td>${item.fullName}</td>
+                        <td>${item.email}</td>
+                        <td>${item.phone}</td>
+                        <td>${item.balance}</td>
+                        <td>${item.locationRegion.provinceName}</td>
+                        <td>${item.locationRegion.districtName}</td>
+                        <td>${item.locationRegion.wardName}</td>
+                        <td>${item.locationRegion.address}</td>
+                    </tr>
+                `;
+
+                $('#tbListCustomers tbody').prepend(str);
+                $('#modalCreateCustomer').modal('hide');
+                App.SweetAleart.showSuccessAlert("Created A New Customer Successful");
+
+                handleShowFooter();
+                unbinAll();
             })
-            .fail((jqXHR) => {
-                console.log(jqXHR);
+            .fail((jqxHR) => {
+                App.SweetAleart.showErrorAlert(jqxHR.responseJSON.message)
+                console.log(jqxHR);
             })
         })
 
+        $('#btnDepositMoney').on('click', () => {
+            deposit.customerId = customer.id;
+            deposit.transactionAmount = $('#transactionAmountDep').val();
 
+            $.ajax({
+                "headers": {
+                    "accept": "application/json",
+                    "content-type": "application/json"
+                },
+                "type": "POST",
+                "url": "http://localhost:8080/api/customers/deposit",
+                "data": JSON.stringify(deposit)
+            })
+            .done((item) => {
+                let str = `
+                    <tr id="tr_${item.id}">
+                        <td><span class="select-tab unselected"></span></td>
+                        <td>${item.id}</td>
+                        <td>${item.fullName}</td>
+                        <td>${item.email}</td>
+                        <td>${item.phone}</td>
+                        <td>${item.balance}</td>
+                        <td>${item.locationRegion.provinceName}</td>
+                        <td>${item.locationRegion.districtName}</td>
+                        <td>${item.locationRegion.wardName}</td>
+                        <td>${item.locationRegion.address}</td>
+                    </tr>
+                `;
+
+                $('#tr_' + item.id).replaceWith(str);
+                $('#modalDeposit').modal('hide');
+                App.SweetAleart.showSuccessAlert("Deposit Successful");
+
+                handleShowFooter();
+                unbinAll();
+            })
+            .fail((jqxHR) => {
+                App.SweetAleart.showErrorAlert(jqxHR.responseJSON.message);
+                console.log(jqxHR);
+            })
+        })
+
+        function handleGroupShowModal() {
+            handleShowDeposit();
+        }
+
+        function handleShowFooter() {
+            $("#tbListCustomers tbody tr").on('click', function (){
+                customerId = $(this).attr('id').replace('tr_', '');
+                console.log(customerId)
+                let tempFooter = $.validator.format($.trim($('#tempFooter').val().toString()));
+
+                $('.footer').html(tempFooter);
+
+                handleGroupShowModal()
+            });
+        }
+
+        function handleShowDeposit() {
+            $('button.deposit').on('click', () => {
+                $.ajax({
+                    "headers": {
+                        "accept": "application/json",
+                        "content-type": "application/json"
+                    },
+                    "type": "GET",
+                    "url": "http://localhost:8080/api/customers/" + customerId
+                })
+                .done((data) => {
+                    customer = data;
+                    $('#customerIdDep').val(customer.id);
+                    $('#fullNameDep').val(customer.fullName);
+                    $('#balanceDep').val(customer.balance);
+
+                    $('#modalDeposit').modal('show')
+
+                })
+                .fail((jqxHR) => {
+                    // App.SweetAleart.showErrorAlert(jqxHR.responseJSON.message)
+                    console.log(jqxHR);
+                })
+            })
+        }
+
+        loadCustomers();
 
     </script>
 
