@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+
+    <th:block th:replace="/layout/head :: head" />
+</head>
+<body>
+    <div class="main-container">
+        <header>
+            <div class="row">
+                <div class="col-sm-5">
+                    <h1>List of customers</h1>
+                </div>
+                <div class="col-sm-7">
+                    <a class="btn btn-outline-light create-modal"><i class="fa fa-plus-square-o" aria-hidden="true"></i> <span>Add New Customer</span></a>
+                    <a href="/transfers" class="btn btn-outline-light"><i class="fa fa-history" aria-hidden="true"></i> <span>Transfer money Information</span></a>
+                </div>
+            </div>
+        </header>
+
+        <div class="box-body">
+
+            <input type="hidden" id="currentRow"/>
+
+            <table id="tbListCustomers" class="table table-hover">
+                <thead>
+                <tr>
+                    <th></th>
+                    <th>#</th>
+                    <th>FullName</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Balance</th>
+                    <th>Province</th>
+                    <th>District</th>
+                    <th>Ward</th>
+                    <th>Address</th>
+                </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="select-tab unselected"></span></td>
+                        <td>1</td>
+                        <td>NVA</td>
+                        <td>nva@gmail.com</td>
+                        <td>01234</td>
+                        <td>0</td>
+                        <td>Hue</td>
+                        <td>Tp.Hue</td>
+                        <td>Phu Nhuan</td>
+                        <td>28 NTP</td>
+                    </tr>
+                </tbody>
+            </table>
+
+        </div>
+    </div>
+
+    <th:block th:replace="/customer/modal-create :: modal-create" />
+<!--    <th:block th:replace="/customer/modal-deposit :: modal-deposit" />-->
+<!--    <th:block th:replace="/customer/modal-transfer :: modal-transfer" />-->
+<!--    <th:block th:replace="/customer/modal-update :: modal-update" />-->
+<!--    <th:block th:replace="/customer/modal-withdraw :: modal-withdraw" />-->
+    <th:block th:replace="/layout/script :: script" />
+
+    <script>
+        let locationRegion = new LocationRegion();
+        let customer = new Customer();
+
+        $('.create-modal').on('click', () => {
+            $('#modalCreateCustomer').modal('show');
+        })
+
+        function drawProvinces() {
+            return $.ajax({
+                headers: {
+                    accept: "application/json",
+                    "content-type": "application/json"
+                },
+                type: "GET",
+                url: "https://vapi.vnappmob.com/api/province/",
+            })
+                .done((data) => {
+                    $.each(data.results, (i, item) => {
+                        let str = `<option value="${item.province_id}">${item.province_name}</option>`;
+
+                        $('#province').append(str);
+                    })
+                })
+                .fail((jqXHR) => {
+                    console.log(jqXHR);
+                })
+        }
+
+        function drawDistricts (provinceId) {
+            return $.ajax({
+                headers: {
+                    accept: "application/json",
+                    "content-type": "application/json"
+                },
+                type: "GET",
+                url: "https://vapi.vnappmob.com/api/province/district/" + provinceId,
+            })
+            .done((data) => {
+                $.each(data.results, (i, item) => {
+                    let str = `<option value="${item.district_id}">${item.district_name}</option>`;
+
+                    $('#district').append(str)
+                })
+            })
+        }
+
+        function drawWards (districtId) {
+            return $.ajax({
+                headers: {
+                    accept: "application/json",
+                    "content-type": "application/json"
+                },
+                type: "GET",
+                url: "https://vapi.vnappmob.com/api/province/ward/" + districtId,
+            })
+                .done((data) => {
+                    $.each(data.results, (i, item) => {
+                        let str = `<option value="${item.ward_id}">${item.ward_name}</option>`;
+
+                        $('#ward').append(str)
+                    })
+                })
+        }
+
+        drawProvinces().then(() =>{
+            let provinceId = $('#province').val();
+            drawDistricts(provinceId).then(() => {
+                let districtId = $('#district').val();
+                drawWards(districtId);
+            })
+        })
+
+        $('#province').on('change', function (){
+            let provinceId = $('#province').val();
+            drawDistricts(provinceId).then(() => {
+                let districtId = $('#district').val();
+                drawWards(districtId);
+            })
+        })
+
+        $('#btnCreateCustomer').on('click', () => {
+            locationRegion.provinceId = $('#province').val();
+            locationRegion.provinceName = $('#province :selected').text();
+            locationRegion.districtId = $('#district').val();
+            locationRegion.districtName = $('#district :selected').text();
+            locationRegion.wardId = $('#ward').val();
+            locationRegion.wardName = $('#ward :selected').text();
+            locationRegion.address = $('#address').val();
+
+            customer.fullName = $('#fullName').val();
+            customer.email = $('#email').val();
+            customer.phone = $('#phone').val();
+            customer.locationRegion = locationRegion;
+
+            $.ajax({
+                "headers": {
+                    "accept": "application/json",
+                    "content-type": "application/json"
+                },
+                "type": "POST",
+                "url": "http://localhost:8080/api/customers/create",
+                "data": JSON.stringify(customer)
+            })
+            .done((data) => {
+                console.log(data);
+            })
+            .fail((jqXHR) => {
+                console.log(jqXHR);
+            })
+        })
+
+
+
+    </script>
+
+</body>
+</html>
