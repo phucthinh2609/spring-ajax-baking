@@ -50,9 +50,9 @@
 
     <th:block th:replace="/customer/modal_create :: modal_create" />
     <th:block th:replace="/customer/modal_deposit :: modal_deposit" />
-<!--    <th:block th:replace="/customer/modal-transfer :: modal-transfer" />-->
-<!--    <th:block th:replace="/customer/modal-update :: modal-update" />-->
-<!--    <th:block th:replace="/customer/modal-withdraw :: modal-withdraw" />-->
+    <th:block th:replace="/customer/modal_transfer :: modal_transfer" />
+    <th:block th:replace="/customer/modal_update :: modal_update" />
+    <th:block th:replace="/customer/modal_withdraw :: modal_withdraw" />
     <th:block th:replace="/customer/footer :: footer" />
     <th:block th:replace="/layout/script :: script" />
 
@@ -60,14 +60,14 @@
         let locationRegion = new LocationRegion();
         let customer = new Customer();
         let deposit = new Deposit();
+        let withdraw = new Withdraw();
+        // let transfer = new Transfer();
+        // let sender = new Sender();
+        // let recipient = new Recipient();
         let customerId = null;
 
-        $('.create-modal').on('click', () => {
-            $('#modalCreateCustomer').modal('show');
-        })
-
         function loadCustomers() {
-            $.ajax({
+            return $.ajax({
                 "headers": {
                     "accept": "application/json",
                     "content-type": "application/json"
@@ -93,11 +93,31 @@
                     `;
 
                     $('#tbListCustomers tbody').prepend(str)
-
-                    handleShowFooter();
-                    unbinAll();
                 })
+
+                unbinAll();
             })
+        }
+
+        function formatNumber() {
+            $("#tbListCustomers tbody tr").on("click", function () {
+                customerId = $(this).attr('id').replace('tr_', '');
+
+                // $("table tr td").find(".select-tab.selected").removeClass("selected").addClass("unselected");
+                // $(this).parent().find(".select-tab").removeClass("unselected").addClass("selected");
+
+                $('#tbCustomer tbody tr td span.select-tab').removeClass("selected").addClass("unselected");
+                $(`#tbCustomer tbody tr#tr_${customerId} td span.select-tab`).removeClass("unselected").addClass("selected");
+
+                let tempFooter = $.validator.format($.trim($('#tempFooter').val().toString()));
+
+                $('.footer').html(tempFooter);
+
+                handleShowDepositModal();
+                handleShowUpdateModal();
+                handleShowWithdrawModal();
+                handleShowSuspendedConfirm();
+            });
         }
 
         function drawProvinces() {
@@ -109,16 +129,18 @@
                 type: "GET",
                 url: "https://vapi.vnappmob.com/api/province/",
             })
-                .done((data) => {
-                    $.each(data.results, (i, item) => {
-                        let str = `<option value="${item.province_id}">${item.province_name}</option>`;
+            .done((data) => {
+                $.each(data.results, (i, item) => {
+                    let str = `<option value="${item.province_id}">${item.province_name}</option>`;
 
-                        $('#province').append(str);
-                    })
+                    $('#province').append(str);
+                    $('#provinceUp').append(str);
                 })
-                .fail((jqxHR) => {
-                    App.SweetAleart.showErrorAlert(jqxHR.responseJSON.message)
-                    console.log(jqxHR);                })
+            })
+            .fail((jqxHR) => {
+                App.SweetAleart.showErrorAlert(jqxHR.responseJSON.message)
+                console.log(jqxHR);
+            })
         }
 
         function drawDistricts (provinceId) {
@@ -135,6 +157,7 @@
                     let str = `<option value="${item.district_id}">${item.district_name}</option>`;
 
                     $('#district').append(str)
+                    $('#districtUp').append(str)
                 })
             })
         }
@@ -148,30 +171,53 @@
                 type: "GET",
                 url: "https://vapi.vnappmob.com/api/province/ward/" + districtId,
             })
-                .done((data) => {
-                    $.each(data.results, (i, item) => {
-                        let str = `<option value="${item.ward_id}">${item.ward_name}</option>`;
+            .done((data) => {
+                $.each(data.results, (i, item) => {
+                    let str = `<option value="${item.ward_id}">${item.ward_name}</option>`;
 
-                        $('#ward').append(str)
-                    })
+                    $('#ward').append(str)
+                    $('#wardUp').append(str)
                 })
+            })
         }
 
-        drawProvinces().then(() =>{
-            let provinceId = $('#province').val();
-            drawDistricts(provinceId).then(() => {
-                let districtId = $('#district').val();
-                drawWards(districtId);
-            })
-        })
+        function provinceChange() {
+            return $.ajax({
+                type: "GET",
+                url: "https://vapi.vnappmob.com/api/province/district/" + locationRegion.provinceId
+            }).done((data) => {
+                $('#district').empty();
+                $('#districtUp').empty();
 
-        $('#province').on('change', function (){
-            let provinceId = $('#province').val();
-            drawDistricts(provinceId).then(() => {
-                let districtId = $('#district').val();
-                drawWards(districtId);
-            })
-        })
+                $.each(data.results, (i, item) => {
+                    let str = `<option value="${item.district_id}">${item.district_name}</option>`;
+
+                    $('#district').append(str);
+                    $('#districtUp').append(str);
+                });
+            }).fail(function () {
+                App.SweetAleart.showErrorAlert("Loading of districts is fail");
+            });
+        }
+
+        function districtChange() {
+            $.ajax({
+                type: "GET",
+                url: "https://vapi.vnappmob.com/api/province/ward/" + locationRegion.districtId
+            }).done((data) => {
+                $('#ward').empty();
+                $('#wardUp').empty();
+
+                $.each(data.results, (i, item) => {
+                    let str = `<option value="${item.ward_id}">${item.ward_name}</option>`;
+
+                    $('#ward').append(str);
+                    $('#wardUp').append(str);
+                });
+            }).fail(function () {
+                App.SweetAleart.showErrorAlert("Loading of wards is fail");
+            });
+        }
 
         function unbinAll() {
             $('.edit').off;
@@ -181,7 +227,7 @@
             $('.transfer').off;
         }
 
-        $('#btnCreateCustomer').on('click', () => {
+        function doCreate() {
             locationRegion.provinceId = $('#province').val();
             locationRegion.provinceName = $('#province :selected').text();
             locationRegion.districtId = $('#district').val();
@@ -224,16 +270,69 @@
                 $('#modalCreateCustomer').modal('hide');
                 App.SweetAleart.showSuccessAlert("Created A New Customer Successful");
 
-                handleShowFooter();
+                formatNumber();
                 unbinAll();
             })
             .fail((jqxHR) => {
                 App.SweetAleart.showErrorAlert(jqxHR.responseJSON.message)
                 console.log(jqxHR);
             })
-        })
+        }
 
-        $('#btnDepositMoney').on('click', () => {
+        function doUpdate() {
+            locationRegion.provinceId = $('#provinceUp').val();
+            locationRegion.provinceName = $('#provinceUp :selected').text();
+            locationRegion.districtId = $('#districtUp').val();
+            locationRegion.districtName = $('#districtUp :selected').text();
+            locationRegion.wardId = $('#wardUp').val();
+            locationRegion.wardName = $('#wardUp :selected').text();
+            locationRegion.address = $('#addressUp').val();
+
+            customer.fullName = $('#fullNameUp').val();
+            customer.email = $('#emailUp').val();
+            customer.phone = $('#phoneUp').val();
+            customer.locationRegion = locationRegion;
+
+            $.ajax({
+                "headers": {
+                    "accept": "application/json",
+                    "content-type": "application/json"
+                },
+                "type": "POST",
+                "url": "http://localhost:8080/api/customers/edit",
+                "data": JSON.stringify(customer)
+            })
+            .done((item) => {
+                let str = `
+                <tr id="tr_${item.id}">
+                    <td><span class="select-tab unselected"></span></td>
+                    <td>${item.id}</td>
+                    <td>${item.fullName}</td>
+                    <td>${item.email}</td>
+                    <td>${item.phone}</td>
+                    <td>${item.balance}</td>
+                    <td>${item.locationRegion.provinceName}</td>
+                    <td>${item.locationRegion.districtName}</td>
+                    <td>${item.locationRegion.wardName}</td>
+                    <td>${item.locationRegion.address}</td>
+                </tr>
+            `;
+                let currentRow = $('#tr_' + item.id);
+                currentRow.replaceWith(str);
+
+                $('#modalUpdateCustomer').modal('hide');
+                App.SweetAleart.showSuccessAlert("Updated A Customer Successful");
+
+                formatNumber();
+                unbinAll();
+            })
+            .fail((jqxHR) => {
+                App.SweetAleart.showErrorAlert(jqxHR.responseJSON.message)
+                console.log(jqxHR);
+            })
+        }
+
+        function doDeposit() {
             deposit.customerId = customer.id;
             deposit.transactionAmount = $('#transactionAmountDep').val();
 
@@ -266,33 +365,128 @@
                 $('#modalDeposit').modal('hide');
                 App.SweetAleart.showSuccessAlert("Deposit Successful");
 
-                handleShowFooter();
-                unbinAll();
+                // handleShowFooter();
+                // unbinAll();
             })
             .fail((jqxHR) => {
                 App.SweetAleart.showErrorAlert(jqxHR.responseJSON.message);
                 console.log(jqxHR);
             })
-        })
-
-        function handleGroupShowModal() {
-            handleShowDeposit();
         }
 
-        function handleShowFooter() {
-            $("#tbListCustomers tbody tr").on('click', function (){
-                customerId = $(this).attr('id').replace('tr_', '');
-                console.log(customerId)
-                let tempFooter = $.validator.format($.trim($('#tempFooter').val().toString()));
+        function doWithdraw() {
+            withdraw.customerId = customer.id;
+            withdraw.transactionAmount = $('#transactionAmountWd').val();
 
-                $('.footer').html(tempFooter);
+            console.log("Balance's customer: "+ customer.balance);
+            console.log("TransactionAmount: "+ withdraw.transactionAmount);
 
-                handleGroupShowModal()
+            // if (customer.balance < withdraw.transwactionAmount) {
+                $.ajax({
+                    "headers": {
+                        "accept": "application/json",
+                        "content-type": "application/json"
+                    },
+                    "type": "POST",
+                    "url": "http://localhost:8080/api/customers/withdraw",
+                    "data": JSON.stringify(withdraw)
+                })
+                .done((item) => {
+                    let str = `
+                        <tr id="tr_${item.id}">
+                            <td><span class="select-tab unselected"></span></td>
+                            <td>${item.id}</td>
+                            <td>${item.fullName}</td>
+                            <td>${item.email}</td>
+                            <td>${item.phone}</td>
+                            <td>${item.balance}</td>
+                            <td>${item.locationRegion.provinceName}</td>
+                            <td>${item.locationRegion.districtName}</td>
+                            <td>${item.locationRegion.wardName}</td>
+                            <td>${item.locationRegion.address}</td>
+                        </tr>
+                    `;
+
+                    $('#tr_' + item.id).replaceWith(str);
+                    $('#modalWithdraw').modal('hide');
+                    App.SweetAleart.showSuccessAlert("Withdraw Successful");
+
+                    // handleShowFooter();
+                    // unbinAll();
+                })
+                .fail((jqxHR) => {
+                    App.SweetAleart.showErrorAlert(jqxHR.responseJSON.message);
+                    console.log(jqxHR);
+                })
+            // }else {
+            //     App.SweetAleart.showErrorAlert("Balance not enough");
+            //
+            // }
+        }
+
+        function doSuspended() {
+            $.ajax({
+                "type": "POST",
+                "headers": {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                "url": "http://localhost:8080/api/customers/suspensed/" + customerId
+
+            }).done( () => {
+                App.SweetAleart.showSuccessAlert("Suspended a customer successful");
+                $("#tr_" + customerId).remove();
+
+            }).fail( () => {
+                App.SweetAleart.showErrorAlert("Suspended failed");
             });
         }
 
-        function handleShowDeposit() {
-            $('button.deposit').on('click', () => {
+        function hanldeShowCreateModal() {
+            $('#modalCreateCustomer').modal('show');
+        }
+
+        function handleShowUpdateModal() {
+            $('.footer button.edit').on('click', () => {
+                $.ajax({
+                    "headers": {
+                        "accept": "application/json",
+                        "content-type": "application/json"
+                    },
+                    "type": "GET",
+                    "url": "http://localhost:8080/api/customers/" + customerId
+                })
+                .done((data) => {
+                    customer = data;
+                    locationRegion = data.locationRegion;
+
+                    $('#fullNameUp').val(customer.fullName);
+                    $('#emailUp').val(customer.email);
+                    $('#phoneUp').val(customer.phone);
+
+                    $('#provinceUp').val(locationRegion.provinceId);
+                    $('#districtUp').empty();
+
+                    drawDistricts(locationRegion.provinceId).then(function () {
+                        $('#districtUp').val(locationRegion.districtId);
+                        $('#wardUp').empty();
+
+                        drawWards(locationRegion.districtId).then(function (){
+                            $('#wardUp').val(locationRegion.wardId);
+                        });
+                    });
+
+                    $('#modalUpdateCustomer').modal('show')
+                })
+                .fail((jqxHR) => {
+                    // App.SweetAleart.showErrorAlert(jqxHR.responseJSON.message)
+                    console.log(jqxHR);
+                })
+            })
+        }
+
+        function handleShowDepositModal() {
+            $('.footer button.deposit').on('click', () => {
                 $.ajax({
                     "headers": {
                         "accept": "application/json",
@@ -315,9 +509,134 @@
                     console.log(jqxHR);
                 })
             })
+
         }
 
-        loadCustomers();
+        function handleShowWithdrawModal() {
+            $('.footer button.withdraw').on('click', () => {
+                $.ajax({
+                    "headers": {
+                        "accept": "application/json",
+                        "content-type": "application/json"
+                    },
+                    "type": "GET",
+                    "url": "http://localhost:8080/api/customers/" + customerId
+                })
+                .done((data) => {
+                    customer = data;
+                    $('#customerIdWd').val(customer.id);
+                    $('#fullNameWd').val(customer.fullName);
+                    $('#balanceWd').val(customer.balance);
+
+                    $('#modalWithdraw').modal('show')
+
+                })
+                .fail((jqxHR) => {
+                    // App.SweetAleart.showErrorAlert(jqxHR.responseJSON.message)
+                    console.log(jqxHR);
+                })
+            })
+        }
+
+        function handleShowSuspendedConfirm() {
+            $('.footer button.suspended').on('click', () => {
+                App.SweetAleart.showSuspendedConfirmAlert()
+                .then((result) => {
+                    if (result.isConfirmed) {
+                        doSuspended();
+                    }
+                })
+            })
+        }
+
+        function initializeControlEvent() {
+            $('#province').on('change', function () {
+                locationRegion.provinceId = $('#province').val();
+
+                provinceChange().done(function () {
+                    locationRegion.districtId = $('#district').prop("selectedIndex", 0).val();
+                    districtChange();
+                })
+            })
+
+            $('#district').on('change', function () {
+                locationRegion.districtId = $('#district').val();
+                districtChange();
+            })
+
+            $('#provinceUp').on('change', function () {
+                locationRegion.provinceId = $('#provinceUp').val();
+
+                provinceChange().done(function () {
+                    locationRegion.districtId = $('#districtUp').prop("selectedIndex", 0).val();
+                    districtChange();
+                })
+            })
+
+            $('#districtUp').on('change', function () {
+                locationRegion.districtId = $('#districtUp').val();
+                districtChange();
+            })
+
+            $('.create-modal').on('click', () => {
+                hanldeShowCreateModal();
+            })
+
+            // $('.footer button.edit').on('click', () => {
+            //     handleShowUpdateModal();
+            // })
+
+            // $('.footer button.deposit').on('click', () => {
+            //     deposit.customerId = customerId;
+            //     handleShowDepositModal();
+            // })
+
+            // $('.footer button.withdraw').on('click', () => {
+            //     withdraw.customerId = customerId;
+            //     handleShowWithdrawModal();
+            // })
+
+            $('#btnCreateCustomer').on('click', () => {
+                $('#frmCreateCustomer').submit();
+            })
+
+            $('#btnUpdateCustomer').on('click', () => {
+                $('#frmUpdateCustomer').submit();
+            })
+
+            $('#btnDepositMoney').on('click', () => {
+                $('#frmDeposit').submit();
+            })
+
+            $('#btnWithdrawMoney').on('click', () => {
+                $('#frmWithdraw').submit();
+            })
+
+        }
+
+        $(function () {
+            loadCustomers().then(function (){
+                formatNumber()
+            });
+
+
+            drawProvinces().then(function (){
+                let provinceId = $('#province').prop("selectedIndex", 0).val();
+
+                if (provinceId != null) {
+                    drawDistricts(provinceId).then(function (){
+                        let districtId = $('#district').prop("selectedIndex", 0).val();
+
+                        if (districtId != null){
+                            drawWards(districtId);
+                        }
+                    })
+                }
+            });
+
+            initializeControlEvent();
+        });
+
 
     </script>
 

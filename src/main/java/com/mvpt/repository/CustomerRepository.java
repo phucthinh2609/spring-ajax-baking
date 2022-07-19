@@ -22,6 +22,9 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
     @Query("SELECT NEW com.mvpt.model.dto.CustomerDTO (c.id, c.fullName, c.email, c.phone, c.balance, c.locationRegion) FROM Customer c WHERE c.id = ?1 ")
     Optional<CustomerDTO> getCustomerDTOById(Long id);
 
+    @Query("SELECT NEW com.mvpt.model.dto.CustomerDTO (c.id, c.fullName, c.email, c.phone, c.balance, c.locationRegion) FROM Customer c WHERE c.email = ?1 AND c.id <> ?2 ")
+    Optional<CustomerDTO> findCustomerDTOByEmailAndIdIsNot(String email, Long id);
+
     List<Customer> findAllByDeletedFalse();
 
     Boolean existsByEmail(String email);

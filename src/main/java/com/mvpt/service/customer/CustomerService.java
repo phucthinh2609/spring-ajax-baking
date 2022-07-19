@@ -4,6 +4,7 @@ import com.mvpt.model.Customer;
 import com.mvpt.model.Transfer;
 import com.mvpt.model.dto.CustomerDTO;
 import com.mvpt.model.dto.DepositDTO;
+import com.mvpt.model.dto.WithdrawDTO;
 import com.mvpt.service.IGeneralService;
 
 import java.util.List;
@@ -17,11 +18,15 @@ public interface CustomerService extends IGeneralService<Customer> {
 
     Optional<CustomerDTO> getCustomerDTOById(Long id);
 
+    Optional<CustomerDTO> findCustomerDTOByEmailAndIdIsNot(String email, Long id);
+
     List<Customer> findAllByIdNot(Long id);
 
     Boolean existsByEmail(String email);
 
     Optional<CustomerDTO> doDeposit(DepositDTO depositDTO);
+
+    Optional<CustomerDTO> doWithdraw(WithdrawDTO withdrawDTO);
 
     void doTransfer(Transfer transfer);
 }

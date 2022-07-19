@@ -5,10 +5,8 @@ import com.mvpt.model.LocationRegion;
 import com.mvpt.model.Transfer;
 import com.mvpt.model.dto.CustomerDTO;
 import com.mvpt.model.dto.DepositDTO;
-import com.mvpt.repository.CustomerRepository;
-import com.mvpt.repository.DepositRepository;
-import com.mvpt.repository.LocationRegionRepository;
-import com.mvpt.repository.TransferRepository;
+import com.mvpt.model.dto.WithdrawDTO;
+import com.mvpt.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +25,9 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Autowired
     private DepositRepository depositRepository;
+
+    @Autowired
+    private WithdrawRepository withdrawRepository;
 
     @Autowired
     private TransferRepository transferRepository;
@@ -57,6 +58,11 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     public Optional<CustomerDTO> getCustomerDTOById(Long id) {
         return customerRepository.getCustomerDTOById(id);
+    }
+
+    @Override
+    public Optional<CustomerDTO> findCustomerDTOByEmailAndIdIsNot(String email, Long id) {
+        return customerRepository.findCustomerDTOByEmailAndIdIsNot(email, id);
     }
 
     @Override
@@ -91,6 +97,20 @@ public class CustomerServiceImpl implements CustomerService {
         Optional<CustomerDTO> customerDTO = customerRepository.getCustomerDTOById(customerId);
 
         depositRepository.save(depositDTO.toDeposit(customerDTO.get().toCustomer()));
+
+        return customerDTO;
+    }
+
+    @Override
+    public Optional<CustomerDTO> doWithdraw(WithdrawDTO withdrawDTO) {
+        long customerId = Long.parseLong(withdrawDTO.getCustomerId());
+        BigDecimal transactionAmount = new BigDecimal(Long.parseLong(withdrawDTO.getTransactionAmount()));
+
+        customerRepository.reduceBalance(customerId, transactionAmount);
+
+        Optional<CustomerDTO> customerDTO = customerRepository.getCustomerDTOById(customerId);
+
+        withdrawRepository.save(withdrawDTO.toWithdraw(customerDTO.get().toCustomer()));
 
         return customerDTO;
     }

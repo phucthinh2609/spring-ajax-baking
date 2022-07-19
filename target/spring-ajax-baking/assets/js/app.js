@@ -17,6 +17,42 @@ class App {
                 text: t,
             })
         }
+
+        static showSuspendedConfirmAlert(){
+            return Swal.fire({
+                title: 'Are you sure?',
+                text: "Are you sure you want to delete the selected data?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: "Yes, delete it!"
+            })
+        }
+    }
+
+    static formatNumber() {
+        $(".num-space").number(true, 0, ',', ' ');
+        $(".num-point").number(true, 0, ',', '.');
+        $(".num-comma").number(true, 0, ',', ',');
+    }
+
+    static formatNumberSpace(x) {
+        if (x == null) {
+            return x;
+        }
+        return x.toString().replace(/ /g, "").replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+    }
+
+    static removeFormatNumberSpace(x) {
+        if (x == null) {
+            return x;
+        }
+        return x.toString().replace(/ /g, "")
+    }
+
+    static formatTooltip() {
+        $('[data-toggle="tooltip"]').tooltip();
     }
 }
 
@@ -45,6 +81,14 @@ class Customer {
 }
 
 class Deposit {
+    constructor(id, customerId, transactionAmount) {
+        this.id = id;
+        this.customerId = customerId;
+        this.transactionAmount = transactionAmount;
+    }
+}
+
+class Withdraw {
     constructor(id, customerId, transactionAmount) {
         this.id = id;
         this.customerId = customerId;
