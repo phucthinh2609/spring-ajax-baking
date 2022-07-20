@@ -8,6 +8,7 @@ import com.mvpt.model.dto.WithdrawDTO;
 import com.mvpt.service.IGeneralService;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public interface CustomerService extends IGeneralService<Customer> {
@@ -28,5 +29,5 @@ public interface CustomerService extends IGeneralService<Customer> {
 
     Optional<CustomerDTO> doWithdraw(WithdrawDTO withdrawDTO);
 
-    void doTransfer(Transfer transfer);
+    Map<String, CustomerDTO> doTransfer(Transfer transfer);
 }

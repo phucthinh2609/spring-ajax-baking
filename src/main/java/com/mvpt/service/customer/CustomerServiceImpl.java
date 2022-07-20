@@ -12,7 +12,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 
@@ -116,13 +118,23 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
-    public void doTransfer(Transfer transfer) {
+    public Map<String, CustomerDTO> doTransfer(Transfer transfer) {
+
+        Map<String, CustomerDTO> result =  new HashMap<>();
 
         customerRepository.reduceBalance(transfer.getSender().getId(), transfer.getTransactionAmount());
 
         customerRepository.incrementBalance(transfer.getRecipient().getId(), transfer.getTransferAmount());
 
         transferRepository.save(transfer);
+
+        Optional<CustomerDTO> sender = customerRepository.getCustomerDTOById(transfer.getSender().getId());
+        Optional<CustomerDTO> recipient = customerRepository.getCustomerDTOById(transfer.getRecipient().getId());
+
+        result.put("sender", sender.get());
+        result.put("recipient", recipient.get());
+
+        return result;
     }
 
     @Override

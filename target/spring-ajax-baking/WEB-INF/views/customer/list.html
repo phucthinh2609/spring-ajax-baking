@@ -61,10 +61,11 @@
         let customer = new Customer();
         let deposit = new Deposit();
         let withdraw = new Withdraw();
-        // let transfer = new Transfer();
-        // let sender = new Sender();
-        // let recipient = new Recipient();
+        let transfer = new Transfer();
+        let sender = new Sender();
+        let recipient = new Recipient();
         let customerId = null;
+        let customers = [];
 
         function loadCustomers() {
             return $.ajax({
@@ -103,11 +104,8 @@
             $("#tbListCustomers tbody tr").on("click", function () {
                 customerId = $(this).attr('id').replace('tr_', '');
 
-                // $("table tr td").find(".select-tab.selected").removeClass("selected").addClass("unselected");
-                // $(this).parent().find(".select-tab").removeClass("unselected").addClass("selected");
-
-                $('#tbCustomer tbody tr td span.select-tab').removeClass("selected").addClass("unselected");
-                $(`#tbCustomer tbody tr#tr_${customerId} td span.select-tab`).removeClass("unselected").addClass("selected");
+                $('#tbListCustomers tbody tr td span.select-tab').removeClass("selected").addClass("unselected");
+                $(`#tbListCustomers tbody tr#tr_${customerId} td span.select-tab`).removeClass("unselected").addClass("selected");
 
                 let tempFooter = $.validator.format($.trim($('#tempFooter').val().toString()));
 
@@ -116,7 +114,9 @@
                 handleShowDepositModal();
                 handleShowUpdateModal();
                 handleShowWithdrawModal();
+                handleShowTransferModal();
                 handleShowSuspendedConfirm();
+                unbinAll();
             });
         }
 
@@ -369,10 +369,24 @@
                 // unbinAll();
             })
             .fail((jqxHR) => {
-                App.SweetAleart.showErrorAlert(jqxHR.responseJSON.message);
-                console.log(jqxHR);
+                ('.modal-alert-danger').html("").removeClass("hide").addClass("show");
+
+                if (jqxHR.responseJSON.message) {
+                    let msg = jqxHR.responseJSON.message;
+
+                    let str = `<label id="message-error" class="error" for="message">${msg}</label>`
+
+                    $('#modalDeposit .modal-alert-danger').append(str);
+                }else if (jqxHR.responseJSON){
+                    $.each(jqxHR.responseJSON, (key, item) => {
+                        let str = `<label id="message-error" class="error" for="${key}">${item}</label>`
+                        $('#modalDeposit .modal-alert-danger').append(str);
+                    })
+                }
             })
         }
+
+
 
         function doWithdraw() {
             withdraw.customerId = customer.id;
@@ -479,7 +493,8 @@
                     $('#modalUpdateCustomer').modal('show')
                 })
                 .fail((jqxHR) => {
-                    // App.SweetAleart.showErrorAlert(jqxHR.responseJSON.message)
+                    App.SweetAleart.showErrorAlert(jqxHR.responseJSON.message)
+                    errors = jqxHR;
                     console.log(jqxHR);
                 })
             })
@@ -538,6 +553,59 @@
             })
         }
 
+        function handleShowTransferModal() {
+            $('.footer button.transfer').on('click', () => {
+                $.ajax({
+                    "headers": {
+                        "accept": "application/json",
+                        "content-type": "application/json"
+                    },
+                    "type": "GET",
+                    "url": "http://localhost:8080/api/customers/" + customerId
+                })
+                .done((data) => {
+                    customer = data;
+
+                    drawRecipients(customerId)
+
+                    $('#senderIdTrf').val(customer.id);
+                    $('#senderNameTrf').val(customer.fullName);
+                    $('#emailTrf').val(customer.fullName);
+                    $('#balanceTrf').val(customer.balance);
+
+                    $('#modalTransfer').modal('show');
+                })
+                .fail((jqxHR) => {
+                    App.SweetAleart.showErrorAlert(jqxHR.responseJSON.message)
+                    console.log(jqxHR);
+                })
+            })
+        }
+
+        function drawRecipients(customerId) {
+            $.ajax({
+                "headers": {
+                    "accept": "application/json",
+                    "content-type": "application/json"
+                },
+                "type": "GET",
+                "url": "http://localhost:8080/api/customers/",
+            })
+            .done((data) => {
+                customers = data;
+                $('#recipientIdTrf').html("");
+
+                $.each(customers, (i, item) => {
+                    recipient = item;
+
+                    if (item.id != customerId){
+                        let str = `<option value="${item.id}">(${item.id}) ${item.fullName}</option>`
+                        $('#recipientIdTrf').prepend(str);
+                    }
+                })
+            })
+        }
+
         function handleShowSuspendedConfirm() {
             $('.footer button.suspended').on('click', () => {
                 App.SweetAleart.showSuspendedConfirmAlert()
@@ -587,12 +655,10 @@
             // })
 
             // $('.footer button.deposit').on('click', () => {
-            //     deposit.customerId = customerId;
             //     handleShowDepositModal();
             // })
 
             // $('.footer button.withdraw').on('click', () => {
-            //     withdraw.customerId = customerId;
             //     handleShowWithdrawModal();
             // })
 
@@ -605,7 +671,8 @@
             })
 
             $('#btnDepositMoney').on('click', () => {
-                $('#frmDeposit').submit();
+                // $('#frmDeposit').submit();
+                doDeposit();
             })
 
             $('#btnWithdrawMoney').on('click', () => {
@@ -613,12 +680,10 @@
             })
 
         }
-
         $(function () {
             loadCustomers().then(function (){
                 formatNumber()
             });
-
 
             drawProvinces().then(function (){
                 let provinceId = $('#province').prop("selectedIndex", 0).val();
@@ -636,7 +701,6 @@
 
             initializeControlEvent();
         });
-
 
     </script>
 

@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.hibernate.validator.constraints.Length;
 
 import javax.persistence.*;
@@ -17,6 +18,7 @@ import java.math.BigDecimal;
 @Setter
 @Entity
 @Table(name = "transfers")
+@Accessors(chain = true)
 public class Transfer extends BaseEntities {
 
     @Id

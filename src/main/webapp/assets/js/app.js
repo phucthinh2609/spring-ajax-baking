@@ -80,6 +80,18 @@ class Customer {
     }
 }
 
+class Sender extends Customer{
+    constructor() {
+        super();
+    }
+}
+
+class Recipient extends Customer{
+    constructor() {
+        super();
+    }
+}
+
 class Deposit {
     constructor(id, customerId, transactionAmount) {
         this.id = id;
@@ -92,6 +104,18 @@ class Withdraw {
     constructor(id, customerId, transactionAmount) {
         this.id = id;
         this.customerId = customerId;
+        this.transactionAmount = transactionAmount;
+    }
+}
+
+class Transfer {
+    constructor(id, senderId, recipientId, fees, feesAmount, transferAmount, transactionAmount) {
+        this.id = id;
+        this.senderId = senderId;
+        this.recipientId = recipientId;
+        this.fees = fees;
+        this.feesAmount = feesAmount;
+        this.transferAmount = transferAmount;
         this.transactionAmount = transactionAmount;
     }
 }

@@ -1,17 +1,24 @@
 package com.mvpt.model.dto;
 
+import com.mvpt.model.Customer;
+import com.mvpt.model.Transfer;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 
+import javax.persistence.Column;
 import javax.validation.constraints.*;
+import java.math.BigDecimal;
 
 
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
 @Setter
+@Accessors(chain = true)
+
 public class TransferDTO {
 
     @NotBlank(message = "Sender is required")
@@ -32,5 +39,19 @@ public class TransferDTO {
     @DecimalMin(value = "50", message = "Min is 50")
     @DecimalMax(value = "100000", message = "Min is 100.000")
     private String transferAmount;
+
+    private String fees;
+    private String feesAmount;
+    private String transactionAmount;
+
+    public Transfer toTransfer(Customer sender, Customer recipient) {
+        return new Transfer()
+                .setSender(sender)
+                .setRecipient(recipient)
+                .setTransferAmount(new BigDecimal(Long.parseLong(transferAmount)))
+                .setFees(Long.parseLong(fees))
+                .setFeesAmount(new BigDecimal(Long.parseLong(feesAmount)))
+                .setTransactionAmount(new BigDecimal(Long.parseLong(transactionAmount)));
+    }
 
 }
