@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -65,7 +66,11 @@ public class CustomerRestController {
     }
 
     @PostMapping("/create")
-    public ResponseEntity<?> doCreate(@RequestBody CustomerDTO customerDTO) {
+    public ResponseEntity<?> doCreate(@Validated @RequestBody CustomerDTO customerDTO, BindingResult bindingResult) {
+
+        if (bindingResult.hasFieldErrors()) {
+            return appUtil.mapErrorToResponse(bindingResult);
+        }
 
         customerDTO.setId(0L);
         customerDTO.setBalance(new BigDecimal(0L));
@@ -190,13 +195,18 @@ public class CustomerRestController {
         transferDTO.setTransferAmount(String.valueOf(transferAmout));
         transferDTO.setTransactionAmount(String.valueOf(transactionAmout));
 
+        if (transactionAmout.compareTo(currentBalance) > 0) {
+            throw new DataInputException("Sender's balance not enough");
+        }
+
         try{
+            Map<String, CustomerDTO> result = customerService.doTransfer(transferDTO.toTransfer(senderOptional.get(), recipientOptional.get()));
+
+            return new ResponseEntity<>(result, HttpStatus.CREATED);
 
         }catch (Exception ex) {
             throw new DataInputException("Transfer fail");
         }
-
-        return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
     @PostMapping("/suspensed/{id}")

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
@@ -48,6 +48,7 @@
 
     <div class="footer"></div>
 
+    <th:block th:replace="/customer/temp_row_customer :: temp_row_customer" />
     <th:block th:replace="/customer/modal_create :: modal_create" />
     <th:block th:replace="/customer/modal_deposit :: modal_deposit" />
     <th:block th:replace="/customer/modal_transfer :: modal_transfer" />
@@ -67,6 +68,16 @@
         let customerId = null;
         let customers = [];
 
+        let tempRowCustomer = $.validator.format($.trim($('#tempRowCustomer').val().toString()));
+
+        function addRowCustomer() {
+            $('#tbListCustomers tbody').prepend($(tempRowCustomer(customer.id, customer.fullName, customer.email, customer.phone, customer.balance, locationRegion.provinceName, locationRegion.districtName, locationRegion.wardName, locationRegion.address)));
+        }
+
+        function replaceRowCustomer() {
+            $('#tr_' + customer.id).replaceWith($(tempRowCustomer(customer.id, customer.fullName, customer.email, customer.phone, App.formatNumberSpace(customer.balance), locationRegion.provinceName, locationRegion.districtName, locationRegion.wardName, locationRegion.address)));
+        }
+
         function loadCustomers() {
             return $.ajax({
                 "headers": {
@@ -77,6 +88,8 @@
                 "url": "http://localhost:8080/api/customers",
             })
             .done((data) => {
+                $('#tbListCustomers tbody').html('');
+
                 $.each(data, (i, item) => {
                     let str = `
                         <tr id="tr_${item.id}">
@@ -85,7 +98,7 @@
                             <td>${item.fullName}</td>
                             <td>${item.email}</td>
                             <td>${item.phone}</td>
-                            <td>${item.balance}</td>
+                            <td class="text-end">${App.formatNumberSpace(item.balance)}</td>
                             <td>${item.locationRegion.provinceName}</td>
                             <td>${item.locationRegion.districtName}</td>
                             <td>${item.locationRegion.wardName}</td>
@@ -94,13 +107,19 @@
                     `;
 
                     $('#tbListCustomers tbody').prepend(str)
+
+                    // customer = item;
+                    // customer.balance = App.formatNumberSpace(customer.balance);
+                    // locationRegion = item.locationRegion;
+                    //
+                    // addRowCustomer();
                 })
 
                 unbinAll();
             })
         }
 
-        function formatNumber() {
+        function clickRowCustomer() {
             $("#tbListCustomers tbody tr").on("click", function () {
                 customerId = $(this).attr('id').replace('tr_', '');
 
@@ -153,12 +172,17 @@
                 url: "https://vapi.vnappmob.com/api/province/district/" + provinceId,
             })
             .done((data) => {
-                $.each(data.results, (i, item) => {
-                    let str = `<option value="${item.district_id}">${item.district_name}</option>`;
 
-                    $('#district').append(str)
-                    $('#districtUp').append(str)
-                })
+                if (data.results.length == 0) {
+                    App.IziToast.showErrorAlert("Loading of districts is fail");
+                }else {
+                    $.each(data.results, (i, item) => {
+                        let str = `<option value="${item.district_id}">${item.district_name}</option>`;
+
+                        $('#district').append(str)
+                        $('#districtUp').append(str)
+                    })
+                }
             })
         }
 
@@ -172,13 +196,42 @@
                 url: "https://vapi.vnappmob.com/api/province/ward/" + districtId,
             })
             .done((data) => {
-                $.each(data.results, (i, item) => {
-                    let str = `<option value="${item.ward_id}">${item.ward_name}</option>`;
+                if (data.results.length == 0) {
+                    App.IziToast.showErrorAlert("Loading of wards is fail");
+                }else {
+                    $.each(data.results, (i, item) => {
+                        let str = `<option value="${item.ward_id}">${item.ward_name}</option>`;
 
-                    $('#ward').append(str)
-                    $('#wardUp').append(str)
-                })
+                        $('#ward').append(str)
+                        $('#wardUp').append(str)
+                    })
+                }
             })
+        }
+
+        function drawRecipients(customerId) {
+            $.ajax({
+                "headers": {
+                    "accept": "application/json",
+                    "content-type": "application/json"
+                },
+                "type": "GET",
+                "url": "http://localhost:8080/api/customers/",
+            })
+                .done((data) => {
+                    customers = data;
+
+                    $('#recipientIdTrf').html("");
+
+                    $.each(customers, (i, item) => {
+                        recipient = item;
+
+                        if (item.id != customerId){
+                            let str = `<option value="${item.id}">(${item.id}) ${item.fullName}</option>`
+                            $('#recipientIdTrf').prepend(str);
+                        }
+                    })
+                })
         }
 
         function provinceChange() {
@@ -196,7 +249,7 @@
                     $('#districtUp').append(str);
                 });
             }).fail(function () {
-                App.SweetAleart.showErrorAlert("Loading of districts is fail");
+                App.IziToast.showErrorAlert("Loading of districts is fail");
             });
         }
 
@@ -215,7 +268,7 @@
                     $('#wardUp').append(str);
                 });
             }).fail(function () {
-                App.SweetAleart.showErrorAlert("Loading of wards is fail");
+                App.IziToast.showErrorAlert("Loading of wards is fail");
             });
         }
 
@@ -251,22 +304,10 @@
                 "data": JSON.stringify(customer)
             })
             .done((item) => {
-                let str = `
-                    <tr id="tr_${item.id}">
-                        <td><span class="select-tab unselected"></span></td>
-                        <td>${item.id}</td>
-                        <td>${item.fullName}</td>
-                        <td>${item.email}</td>
-                        <td>${item.phone}</td>
-                        <td>${item.balance}</td>
-                        <td>${item.locationRegion.provinceName}</td>
-                        <td>${item.locationRegion.districtName}</td>
-                        <td>${item.locationRegion.wardName}</td>
-                        <td>${item.locationRegion.address}</td>
-                    </tr>
-                `;
+                customer = item;
 
-                $('#tbListCustomers tbody').prepend(str);
+                addRowCustomer()
+
                 $('#modalCreateCustomer').modal('hide');
                 App.SweetAleart.showSuccessAlert("Created A New Customer Successful");
 
@@ -274,8 +315,22 @@
                 unbinAll();
             })
             .fail((jqxHR) => {
-                App.SweetAleart.showErrorAlert(jqxHR.responseJSON.message)
-                console.log(jqxHR);
+                $('.modal-alert-danger').html("").removeClass("hide").addClass("show");
+
+                let str = "";
+
+                if (jqxHR.responseJSON.message) {
+                    let msg = jqxHR.responseJSON.message;
+
+                    str = `<label id="message-error" class="error" for="message">${msg}</label>`
+
+                    $('#modalCreateCustomer .modal-alert-danger').append(str);
+                }else if (jqxHR.responseJSON){
+                    $.each(jqxHR.responseJSON, (key, item) => {
+                        str = `<label id="message-error" class="error" for="${key}">${item}</label>`
+                        $('#modalCreateCustomer .modal-alert-danger').append(str);
+                    })
+                }
             })
         }
 
@@ -303,22 +358,9 @@
                 "data": JSON.stringify(customer)
             })
             .done((item) => {
-                let str = `
-                <tr id="tr_${item.id}">
-                    <td><span class="select-tab unselected"></span></td>
-                    <td>${item.id}</td>
-                    <td>${item.fullName}</td>
-                    <td>${item.email}</td>
-                    <td>${item.phone}</td>
-                    <td>${item.balance}</td>
-                    <td>${item.locationRegion.provinceName}</td>
-                    <td>${item.locationRegion.districtName}</td>
-                    <td>${item.locationRegion.wardName}</td>
-                    <td>${item.locationRegion.address}</td>
-                </tr>
-            `;
-                let currentRow = $('#tr_' + item.id);
-                currentRow.replaceWith(str);
+                customer = item;
+
+                replaceRowCustomer();
 
                 $('#modalUpdateCustomer').modal('hide');
                 App.SweetAleart.showSuccessAlert("Updated A Customer Successful");
@@ -327,8 +369,22 @@
                 unbinAll();
             })
             .fail((jqxHR) => {
-                App.SweetAleart.showErrorAlert(jqxHR.responseJSON.message)
-                console.log(jqxHR);
+                $('.modal-alert-danger').html("").removeClass("hide").addClass("show");
+
+                let str = "";
+
+                if (jqxHR.responseJSON.message) {
+                    let msg = jqxHR.responseJSON.message;
+
+                    str = `<label id="message-error" class="error" for="message">${msg}</label>`
+
+                    $('#modalUpdateCustomer .modal-alert-danger').append(str);
+                }else if (jqxHR.responseJSON){
+                    $.each(jqxHR.responseJSON, (key, item) => {
+                        str = `<label id="message-error" class="error" for="${key}">${item}</label>`
+                        $('#modalUpdateCustomer .modal-alert-danger').append(str);
+                    })
+                }
             })
         }
 
@@ -346,40 +402,29 @@
                 "data": JSON.stringify(deposit)
             })
             .done((item) => {
-                let str = `
-                    <tr id="tr_${item.id}">
-                        <td><span class="select-tab unselected"></span></td>
-                        <td>${item.id}</td>
-                        <td>${item.fullName}</td>
-                        <td>${item.email}</td>
-                        <td>${item.phone}</td>
-                        <td>${item.balance}</td>
-                        <td>${item.locationRegion.provinceName}</td>
-                        <td>${item.locationRegion.districtName}</td>
-                        <td>${item.locationRegion.wardName}</td>
-                        <td>${item.locationRegion.address}</td>
-                    </tr>
-                `;
+                customer = item;
 
-                $('#tr_' + item.id).replaceWith(str);
+                replaceRowCustomer();
+
                 $('#modalDeposit').modal('hide');
                 App.SweetAleart.showSuccessAlert("Deposit Successful");
 
-                // handleShowFooter();
-                // unbinAll();
+                formatNumber();
             })
             .fail((jqxHR) => {
-                ('.modal-alert-danger').html("").removeClass("hide").addClass("show");
+                $('.modal-alert-danger').html("").removeClass("hide").addClass("show");
+
+                let str = "";
 
                 if (jqxHR.responseJSON.message) {
                     let msg = jqxHR.responseJSON.message;
 
-                    let str = `<label id="message-error" class="error" for="message">${msg}</label>`
+                    str = `<label id="message-error" class="error" for="message">${msg}</label>`
 
                     $('#modalDeposit .modal-alert-danger').append(str);
                 }else if (jqxHR.responseJSON){
                     $.each(jqxHR.responseJSON, (key, item) => {
-                        let str = `<label id="message-error" class="error" for="${key}">${item}</label>`
+                        str = `<label id="message-error" class="error" for="${key}">${item}</label>`
                         $('#modalDeposit .modal-alert-danger').append(str);
                     })
                 }
@@ -393,57 +438,51 @@
             console.log("Balance's customer: "+ customer.balance);
             console.log("TransactionAmount: "+ withdraw.transactionAmount);
 
-            // if (customer.balance < withdraw.transwactionAmount) {
-                $.ajax({
-                    "headers": {
-                        "accept": "application/json",
-                        "content-type": "application/json"
-                    },
-                    "type": "POST",
-                    "url": "http://localhost:8080/api/customers/withdraw",
-                    "data": JSON.stringify(withdraw)
-                })
-                .done((item) => {
-                    let str = `
-                        <tr id="tr_${item.id}">
-                            <td><span class="select-tab unselected"></span></td>
-                            <td>${item.id}</td>
-                            <td>${item.fullName}</td>
-                            <td>${item.email}</td>
-                            <td>${item.phone}</td>
-                            <td>${item.balance}</td>
-                            <td>${item.locationRegion.provinceName}</td>
-                            <td>${item.locationRegion.districtName}</td>
-                            <td>${item.locationRegion.wardName}</td>
-                            <td>${item.locationRegion.address}</td>
-                        </tr>
-                    `;
+            $.ajax({
+                "headers": {
+                    "accept": "application/json",
+                    "content-type": "application/json"
+                },
+                "type": "POST",
+                "url": "http://localhost:8080/api/customers/withdraw",
+                "data": JSON.stringify(withdraw)
+            })
+            .done((item) => {
+                customer = item;
 
-                    $('#tr_' + item.id).replaceWith(str);
-                    $('#modalWithdraw').modal('hide');
-                    App.SweetAleart.showSuccessAlert("Withdraw Successful");
+                replaceRowCustomer();
 
-                    // handleShowFooter();
-                    // unbinAll();
-                })
-                .fail((jqxHR) => {
-                    App.SweetAleart.showErrorAlert(jqxHR.responseJSON.message);
-                    console.log(jqxHR);
-                })
-            // }else {
-            //     App.SweetAleart.showErrorAlert("Balance not enough");
-            //
-            // }
+                $('#modalWithdraw').modal('hide');
+                App.SweetAleart.showSuccessAlert("Withdraw Successful");
+
+                formatNumber();
+            })
+            .fail((jqxHR) => {
+                $('.modal-alert-danger').html("").removeClass("hide").addClass("show");
+
+                let str = "";
+
+                if (jqxHR.responseJSON.message) {
+                    let msg = jqxHR.responseJSON.message;
+
+                    str = `<label id="message-error" class="error" for="message">${msg}</label>`
+
+                    $('#modalWithdraw .modal-alert-danger').append(str);
+                }else if (jqxHR.responseJSON){
+                    $.each(jqxHR.responseJSON, (key, item) => {
+                        str = `<label id="message-error" class="error" for="${key}">${item}</label>`
+                        $('#modalWithdraw .modal-alert-danger').append(str);
+                    })
+                }
+            })
         }
 
         function doTransfer() {
-            withdraw.customerId = customer.id;
-            withdraw.transactionAmount = $('#transactionAmountWd').val();
+            delete transfer.id;
+            transfer.senderId = $('#senderIdTrf').val();
+            transfer.recipientId = $('#recipientIdTrf').val();
+            transfer.transferAmount = $('#transferAmountTrf').val();
 
-            console.log("Balance's customer: "+ customer.balance);
-            console.log("TransactionAmount: "+ withdraw.transactionAmount);
-
-            // if (customer.balance < withdraw.transwactionAmount) {
             $.ajax({
                 "headers": {
                     "accept": "application/json",
@@ -451,39 +490,42 @@
                 },
                 "type": "POST",
                 "url": "http://localhost:8080/api/customers/transfer",
-                "data": JSON.stringify(withdraw)
+                "data": JSON.stringify(transfer)
             })
-                .done((item) => {
-                    let str = `
-                        <tr id="tr_${item.id}">
-                            <td><span class="select-tab unselected"></span></td>
-                            <td>${item.id}</td>
-                            <td>${item.fullName}</td>
-                            <td>${item.email}</td>
-                            <td>${item.phone}</td>
-                            <td>${item.balance}</td>
-                            <td>${item.locationRegion.provinceName}</td>
-                            <td>${item.locationRegion.districtName}</td>
-                            <td>${item.locationRegion.wardName}</td>
-                            <td>${item.locationRegion.address}</td>
-                        </tr>
-                    `;
+            .done((item) => {
 
-                    $('#tr_' + item.id).replaceWith(str);
-                    $('#modalTransfer').modal('hide');
-                    App.SweetAleart.showSuccessAlert("Transfer Successful");
+                customer = item.sender;
+                locationRegion = customer.locationRegion;
+                replaceRowCustomer();
 
-                    // handleShowFooter();
-                    // unbinAll();
-                })
-                .fail((jqxHR) => {
-                    App.SweetAleart.showErrorAlert(jqxHR.responseJSON.message);
-                    console.log(jqxHR);
-                })
-            // }else {
-            //     App.SweetAleart.showErrorAlert("Balance not enough");
-            //
-            // }
+                customer = item.recipient;
+                locationRegion = customer.locationRegion;
+                replaceRowCustomer();
+
+                $('#modalTransfer').modal('hide');
+                App.SweetAleart.showSuccessAlert("Transfer Successful");
+
+                formatNumber();
+
+            })
+            .fail((jqxHR) => {
+                $('.modal-alert-danger').html("").removeClass("hide").addClass("show");
+
+                let str = "";
+
+                if (jqxHR.responseJSON.message) {
+                    let msg = jqxHR.responseJSON.message;
+
+                    str = `<label id="message-error" class="error" for="message">${msg}</label>`
+
+                    $('#modalTransfer .modal-alert-danger').append(str);
+                }else if (jqxHR.responseJSON){
+                    $.each(jqxHR.responseJSON, (key, item) => {
+                        str = `<label id="message-error" class="error" for="${key}">${item}</label>`
+                        $('#modalTransfer .modal-alert-danger').append(str);
+                    })
+                }
+            })
         }
 
         function doSuspended() {
@@ -526,6 +568,7 @@
                     $('#emailUp').val(customer.email);
                     $('#phoneUp').val(customer.phone);
 
+                    $('#addressUp').val(locationRegion.address);
                     $('#provinceUp').val(locationRegion.provinceId);
                     $('#districtUp').empty();
 
@@ -630,31 +673,6 @@
             })
         }
 
-        function drawRecipients(customerId) {
-            $.ajax({
-                "headers": {
-                    "accept": "application/json",
-                    "content-type": "application/json"
-                },
-                "type": "GET",
-                "url": "http://localhost:8080/api/customers/",
-            })
-            .done((data) => {
-                customers = data;
-
-                $('#recipientIdTrf').html("");
-
-                $.each(customers, (i, item) => {
-                    recipient = item;
-
-                    if (item.id != customerId){
-                        let str = `<option value="${item.id}">(${item.id}) ${item.fullName}</option>`
-                        $('#recipientIdTrf').prepend(str);
-                    }
-                })
-            })
-        }
-
         function handleShowSuspendedConfirm() {
             $('.footer button.suspended').on('click', () => {
                 App.SweetAleart.showSuspendedConfirmAlert()
@@ -736,10 +754,19 @@
                 doTransfer();
             })
 
+            $("#transferAmountTrf").on("input", function () {
+                let transferAmount = +$(this).val();
+                let fees = 10;
+                let feesAmount = transferAmount * fees / 100;
+                let transactionAmount = transferAmount + feesAmount;
+
+                $("#transactionAmountTrf").val(transactionAmount);
+            })
         }
+
         $(function () {
             loadCustomers().then(function (){
-                formatNumber()
+                clickRowCustomer();
             });
 
             drawProvinces().then(function (){
@@ -758,6 +785,8 @@
 
             initializeControlEvent();
         });
+
+        App.formatNumber();
 
     </script>
 

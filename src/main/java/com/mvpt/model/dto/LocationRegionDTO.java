@@ -11,6 +11,7 @@ import javax.persistence.Column;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.validation.constraints.NotBlank;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -26,6 +27,8 @@ public class LocationRegionDTO {
     private String districtName;
     private String wardId;
     private String wardName;
+
+    @NotBlank(message = "Address is required")
     private String address;
 
     public LocationRegion toLocationRegion() {

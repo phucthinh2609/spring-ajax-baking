@@ -46,6 +46,14 @@ public class CustomerController {
         return modelAndView;
     }
 
+    @GetMapping("/login")
+    public ModelAndView showLoginPage() {
+        ModelAndView modelAndView = new ModelAndView();
+        modelAndView.setViewName("/login");
+
+        return modelAndView;
+    }
+
     @GetMapping("/edit/{id}")
     public ModelAndView showEditPage(@PathVariable Long id) {
         ModelAndView modelAndView = new ModelAndView();
@@ -93,9 +101,9 @@ public class CustomerController {
 
             TransferDTO transferDTO = new TransferDTO();
             transferDTO.setSenderId(sender.get().getId().toString());
-            transferDTO.setSenderName(sender.get().getFullName());
-            transferDTO.setEmail(sender.get().getEmail());
-            transferDTO.setBalance(sender.get().getBalance().toString());
+//            transferDTO.setSenderName(sender.get().getFullName());
+//            transferDTO.setEmail(sender.get().getEmail());
+//            transferDTO.setBalance(sender.get().getBalance().toString());
 
 
             modelAndView.addObject("transferDTO", transferDTO);
@@ -229,9 +237,9 @@ public class CustomerController {
 
                             TransferDTO newTransferDTO = new TransferDTO();
                             transferDTO.setSenderId(senderOptional.get().getId().toString());
-                            transferDTO.setSenderName(senderOptional.get().getFullName());
-                            transferDTO.setEmail(senderOptional.get().getEmail());
-                            transferDTO.setBalance(senderOptional.get().getBalance().toString());
+//                            transferDTO.setSenderName(senderOptional.get().getFullName());
+//                            transferDTO.setEmail(senderOptional.get().getEmail());
+//                            transferDTO.setBalance(senderOptional.get().getBalance().toString());
 
                             Optional<Customer> sender = customerService.findById(senderId);
 

@@ -12,7 +12,9 @@ import javax.persistence.Column;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.validation.Valid;
 import javax.validation.constraints.Digits;
+import javax.validation.constraints.NotBlank;
 import java.math.BigDecimal;
 
 @NoArgsConstructor
@@ -23,11 +25,15 @@ import java.math.BigDecimal;
 public class CustomerDTO {
 
     private Long id;
+    @NotBlank(message = "FullName is required")
     private String fullName;
+
+    @NotBlank(message = "Email is required")
     private String email;
     private String phone;
     private BigDecimal balance;
 
+    @Valid
     private LocationRegionDTO locationRegion;
 
     public CustomerDTO(long id, String fullName, String email, String phone,  BigDecimal balance, LocationRegion locationRegion) {
